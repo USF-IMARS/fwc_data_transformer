@@ -21,7 +21,7 @@ def main(filepath):
 
     # === parse date
     data = data.dropna(subset=['DATE', 'WPL_P_A'])
-    data['time'] = [datetime.strptime(str(d), '%m/%d/%Y') for d in data['DATE']]
+    data['time'] = [datetime.strptime(str(d), '%m/%d/%Y').timestamp() for d in data['DATE']]
 
     # === sort by date
     data = data.sort_values('time')
