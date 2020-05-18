@@ -2,9 +2,15 @@
 This script loads coral disease .csv files from FWC, reformats
 them, and inserts them into TODO:which database so the data is
 accesible to the grafana-powered coral disease dashboard.
+
+Example usage:
+```
+python fwc_data_transformer.py test-data\SCTLD_2014_2017.csv
+```
 """
 import sys
 from argparse import ArgumentParser
+from datetime import datetime
 
 import pandas as pd
 
@@ -12,7 +18,29 @@ import pandas as pd
 def main(filepath):
     print(filepath)
     data = pd.read_csv(filepath)
-    print(data)
+
+    # === parse date
+    data = data.dropna(subset=['DATE', 'WPL_P_A'])
+    data['dt'] = [datetime.strptime(str(d), '%m/%d/%Y') for d in data['DATE']]
+
+    # === sort by date
+    data = data.sort_values('dt')
+
+    # === calculate cumulative % infected
+    n_sites = len(data['SITE_NAME'].unique())
+    infected_sites = []
+    data['cumulative_n_sites_infected'] = [0]*len(data)
+    for index, row in data.iterrows():
+        if row['WPL_P_A'] == 1 and row['SITE_NAME'] not in infected_sites:
+            print("{} infected".format(row['SITE_NAME']))
+            infected_sites.append(row['SITE_NAME'])
+        data['cumulative_n_sites_infected'][index] = len(infected_sites)
+    data['cumulative_percent_sites_infected'] = \
+        data['cumulative_n_sites_infected'] / n_sites
+
+    # === export data
+    data.to_csv('data.csv')
+
 
 def parse_args(argvs):
     # =========================================================================
